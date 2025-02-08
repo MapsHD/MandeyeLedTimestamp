@@ -93,18 +93,13 @@ int main()
            stampedTimeCp = timeStamp;
        }
        // offset time to current time
-       auto now = std::chrono::steady_clock::now();
-       std::chrono::duration<double>  diff = now - stampedTimeCp.time; //seconds
-
-       double resolvedTime = stampedTimeCp.timeStamp + diff.count();
-       std::cout << "Resolved Time: " << resolvedTime << std::endl;
-       const uint32_t timeToUc = static_cast<uint32_t>(floor(resolvedTime/0.1));
+       const uint32_t timeToUc = static_cast<uint32_t>(floor(stampedTimeCp.timeStamp/0.1));
 
         // send to UC
         DataSendToUc data;
-        data.brightness = 5;
-        data.colorActive = {0,255,0};
-        data.colorInactive = {255,0,0};
+        data.brightness = 15;
+        data.colorActive = {255,0,0};
+        data.colorInactive = {0,0,0};
         data.ledState = toGrayCode(timeToUc);
 
         sendToUc(serialStream, data);

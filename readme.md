@@ -1,4 +1,6 @@
+** Note ** use this feature in Mandeye controller : https://github.com/JanuszBedkowski/mandeye_controller/pull/33
 # UcCode
+
 
 The firmware can be run on Wemos D1 Mini board with WS2012 RGB leds.
 The LED signal is connected to D4 pin of the Wemos Board.
