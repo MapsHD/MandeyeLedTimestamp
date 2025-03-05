@@ -8,7 +8,40 @@
 #include <mutex>
 #include <thread>
 #include "gray.h"
+#include <set>
 using json = nlohmann::json;
+
+
+namespace Config
+{
+const bool ApplyGrayCode=false;
+const std::map<int, int> BitMapping=
+    {
+        {0,0},
+        {1,1},
+        {2,2},
+        {3,3},
+        {4,4},
+        {5,5},
+        {6,9},// ommit 6,7,8
+        {7,10},
+        {8,11},
+        {9,12},
+        {10,13},
+        {11,14},
+        {12,15},
+        {13,16},
+        {14,17}, //omit 18,19,20
+        {15,21},
+        {16,22},
+        {17,23},
+        {18,24},
+        {19,25},
+        {20,26},
+        {21,27},
+
+};
+}
 
 
 const std::string SERIAL_PORT = "/dev/ttyUSB0";
@@ -24,6 +57,38 @@ struct DataSendToUc{
 uint32_t ConvertColorToUc(const std::array<uint8_t,3>& color){
     return uint32_t(0xff000000) | (color[0] << 16) | (color[1] << 8) | color[2];
 }
+
+
+// Create a mapping from the 32 leds to the 32 leds on the board, the inactive leds are mapped to -1
+std::vector<int> CreateMappingWithInactiveLeds(std::set<int> inactiveLeds)
+{
+  int deactivatedCount =0;
+  std::vector<int> data;
+  for (int i=0; i < 32; i ++)
+  {
+    if (inactiveLeds.find(i) != inactiveLeds.end())
+    {
+      deactivatedCount++;
+    }
+    data.push_back(i+deactivatedCount);
+  }
+  return data;
+}
+
+uint32_t ApplyMapping(uint32_t ledState)
+{
+  uint32_t result = 0;
+  for (const auto & [i, mappedIndex] : Config::BitMapping)
+  {
+    if (mappedIndex>=0 && mappedIndex<32)
+    {
+      bool orginalBitState = (ledState & (1 << i)) != 0;
+      result |= (orginalBitState << mappedIndex);
+    }
+  }
+  return result;
+}
+
 void sendToUc(LibSerial::SerialStream& serialStream, const DataSendToUc& data){
     json j;
     j["ledState"] = data.ledState;
@@ -31,9 +96,10 @@ void sendToUc(LibSerial::SerialStream& serialStream, const DataSendToUc& data){
     j["inactive"] = ConvertColorToUc(data.colorInactive);
     j["brightness"] = data.brightness;
     std::string s = j.dump();
+    std::cout << s << std::endl;
     serialStream << s << std::endl;
+    serialStream.FlushIOBuffers();
 }
-
 
 struct StampedTime{
   double timeStamp;
@@ -64,7 +130,24 @@ void ZMQThread(StampedTime &timeStamp, std::mutex &lock){
 
     }
 }
-int main()
+
+void sendTimestamp(float ts, LibSerial::SerialStream& serialStream)
+{
+    // offset time to current time
+    // lets send number of 1/100 seconds
+    const uint32_t timeToUc = static_cast<uint32_t>(floor(ts/0.1));
+    // send to UC
+    DataSendToUc data;
+    data.brightness = 52;
+    data.colorActive = {0,0,0};
+    data.colorInactive = {255,0,0};
+    uint32_t coded = Config::ApplyGrayCode ? toGrayCode(timeToUc) : timeToUc ;
+    uint32_t codedMapped = ApplyMapping(coded);
+    data.ledState = codedMapped;
+
+    sendToUc(serialStream, data);
+}
+int main(int argc, char** argv)
 {
     std::mutex  lock;
     StampedTime timeStamp;
@@ -73,6 +156,35 @@ int main()
     LibSerial::SerialStream serialStream;
     serialStream.Open(SERIAL_PORT);
     serialStream.SetBaudRate(SERIAL_BAUDRATE);
+    if (argc>=2)
+    {
+        const std::string command (argv[1]);
+        if (command=="--testTimestamp" && argc >=3)
+        {
+            const std::string arg(argv[2]);
+            float testTimestamp=std::atof(arg.c_str());
+            std::cout << " test mode, will display tiemstamp of " << testTimestamp << std::endl;
+            sendTimestamp(testTimestamp, serialStream);
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            serialStream.Close();
+            return 0;
+        }
+        if (command=="--inactiveLeds")
+        {
+          DataSendToUc data;
+          data.brightness = 52;
+          data.colorActive = {0,0,0};
+          data.colorInactive = {255,0,0};
+          uint32_t coded = std::numeric_limits<uint32_t>::max();
+          uint32_t codedMapped = ApplyMapping(coded);
+          data.ledState = codedMapped;
+          sendToUc(serialStream, data);
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          serialStream.Close();
+          return 0;
+        }
+    }
 
 
     // open zmq listener
@@ -92,17 +204,8 @@ int main()
            std::lock_guard<std::mutex> lck(lock);
            stampedTimeCp = timeStamp;
        }
-       // offset time to current time
-       const uint32_t timeToUc = static_cast<uint32_t>(floor(stampedTimeCp.timeStamp/0.1));
 
-        // send to UC
-        DataSendToUc data;
-        data.brightness = 15;
-        data.colorActive = {255,0,0};
-        data.colorInactive = {0,0,0};
-        data.ledState = toGrayCode(timeToUc);
-
-        sendToUc(serialStream, data);
+       sendTimestamp(stampedTimeCp.timeStamp, serialStream);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }

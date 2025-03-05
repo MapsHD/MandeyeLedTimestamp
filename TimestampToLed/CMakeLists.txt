@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
+
 project(TimestampToLed)
 find_path(LIBSERIAL_INCLUDE_DIR SerialPort.h
         PATH_SUFFIXES include
@@ -12,6 +13,7 @@ find_library(LIBSERIAL_LIBRARY
 include_directories(3rd/json)
 
 add_executable(TimestampToLed TimestampToLed.cpp )
+target_compile_features(TimestampToLed PRIVATE cxx_std_20)
 target_link_libraries(TimestampToLed ${LIBSERIAL_LIBRARY} zmq)
 
 
