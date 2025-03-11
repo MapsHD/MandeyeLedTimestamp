@@ -1,0 +1,194 @@
+[
+    {
+        "bit": 0,
+        "location": [
+            1768,
+            1947
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 1,
+        "location": [
+            1849,
+            2105
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 2,
+        "location": [
+            1904,
+            2274
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 3,
+        "location": [
+            1904,
+            2459
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 4,
+        "location": [
+            1860,
+            2616
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 5,
+        "location": [
+            1779,
+            2780
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 6,
+        "location": [
+            1659,
+            2921
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 7,
+        "location": [
+            1501,
+            3019
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 8,
+        "location": [
+            1343,
+            3111
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 9,
+        "location": [
+            1137,
+            3133
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 10,
+        "location": [
+            946,
+            3111
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 11,
+        "location": [
+            778,
+            3024
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 12,
+        "location": [
+            642,
+            2899
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 13,
+        "location": [
+            522,
+            2758
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 14,
+        "location": [
+            451,
+            2529
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 15,
+        "location": [
+            446,
+            2355
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 16,
+        "location": [
+            500,
+            2132
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 17,
+        "location": [
+            620,
+            1953
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 18,
+        "location": [
+            761,
+            1817
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 19,
+        "location": [
+            941,
+            1713
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 20,
+        "location": [
+            1137,
+            1670
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 21,
+        "location": [
+            1338,
+            1670
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 22,
+        "location": [
+            1490,
+            1730
+        ],
+        "radius": 10
+    },
+    {
+        "bit": 23,
+        "location": [
+            1653,
+            1822
+        ],
+        "radius": 10
+    }
+]
