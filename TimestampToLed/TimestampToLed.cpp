@@ -131,16 +131,21 @@ void ZMQThread(StampedTime &timeStamp, std::mutex &lock){
     }
 }
 
+DataSendToUc SetConfig()
+{
+  DataSendToUc d;
+  d.brightness = 5;
+  d.colorActive = {0,0,255};
+  d.colorInactive = {100,0,0};
+  return d;
+}
 void sendTimestamp(float ts, LibSerial::SerialStream& serialStream)
 {
     // offset time to current time
     // lets send number of 1/100 seconds
     const uint32_t timeToUc = static_cast<uint32_t>(floor(ts/0.1));
     // send to UC
-    DataSendToUc data;
-    data.brightness = 52;
-    data.colorActive = {0,0,0};
-    data.colorInactive = {255,0,0};
+    DataSendToUc data = SetConfig();
     uint32_t coded = Config::ApplyGrayCode ? toGrayCode(timeToUc) : timeToUc ;
     uint32_t codedMapped = ApplyMapping(coded);
     data.ledState = codedMapped;
@@ -172,10 +177,7 @@ int main(int argc, char** argv)
         }
         if (command=="--inactiveLeds")
         {
-          DataSendToUc data;
-          data.brightness = 52;
-          data.colorActive = {0,0,0};
-          data.colorInactive = {255,0,0};
+          DataSendToUc data = SetConfig();
           uint32_t coded = std::numeric_limits<uint32_t>::max();
           uint32_t codedMapped = ApplyMapping(coded);
           data.ledState = codedMapped;
