@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(HistogramThresholding)
+project(FindTimeStamp)
 
 # Find OpenCV package
 find_package(OpenCV REQUIRED)
