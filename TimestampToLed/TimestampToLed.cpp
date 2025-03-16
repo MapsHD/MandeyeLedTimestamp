@@ -14,7 +14,7 @@ using json = nlohmann::json;
 
 namespace Config
 {
-const bool ApplyGrayCode=false;
+const bool ApplyGrayCode=true;
 const std::map<int, int> BitMapping=
     {
         {0,0},
@@ -135,8 +135,8 @@ DataSendToUc SetConfig()
 {
   DataSendToUc d;
   d.brightness = 5;
-  d.colorActive = {0,0,255};
-  d.colorInactive = {100,0,0};
+  d.colorActive = {0,0,100};
+  d.colorInactive = {50,0,0};
   return d;
 }
 void sendTimestamp(float ts, LibSerial::SerialStream& serialStream)

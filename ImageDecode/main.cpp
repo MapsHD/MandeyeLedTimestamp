@@ -21,6 +21,13 @@ struct Settings {
 
 std::map<int,Bit> GetBitDef(const std::string& fn, float scale)
 {
+  std::filesystem::path p = fn;
+  if (!exists(p))
+  {
+      std::cerr << "File does not exist: " << fn << std::endl;
+      exit(-1);
+  }
+
       std::map<int,Bit> bits;
       std::ifstream ifs(fn);
       json j;
@@ -35,6 +42,14 @@ std::map<int,Bit> GetBitDef(const std::string& fn, float scale)
 
           bits[key] = b;
       }
+      uint32_t  maxNum = 0;
+      int bitsCount = bits.size();
+      for (int i = 0; i < bitsCount; i++)
+      {
+          maxNum |= 1 << i;
+      }
+      std::cout << "bits count " << bitsCount << std::endl;
+      std::cout << "Max number: " << maxNum << std::endl;
       return bits;
 }
 
@@ -70,6 +85,7 @@ void help(const std::string argv0)
   cout << "options:\n";
   cout << " -h : Show this help message" << endl;
   cout << " -ne : Do not export image with name as decoded timestamp" << endl;
+  cout << " -d  : Export debug image" << endl;
   cout << " -nw : Do not show input" << endl;
 
 }
@@ -81,6 +97,7 @@ int main(int argc, char** argv) {
 
     bool exportImage = true;
     bool gui = true;
+    bool debug = false;
     for (int i =0; i < argc; i++) {
         if (strcmp(argv[i], "-h") == 0) {
             help(argv[0]);
@@ -92,10 +109,13 @@ int main(int argc, char** argv) {
         else if (strcmp(argv[i], "-nw") == 0) {
           gui = false;
         }
+        else if (strcmp(argv[i], "-d") == 0) {
+          debug = true;
+        }
     }
     const std::string jsonPath = argv[2];
     const auto settings = GetSettings(jsonPath);
-    const int processingSize = 640;
+    const int processingSize = 640*2;
     // Load image and mask
     const Mat inputImage = imread(argv[1], IMREAD_COLOR);
 
@@ -115,9 +135,8 @@ int main(int argc, char** argv) {
 
     cv::Mat rgb_image = image;
 
-    //set bits
-    std::uint32_t bitValue = 0x0;
 
+    std::map<int, bool> bitValues;
     for (const auto& [key, value] : Bits) {
       double redCumulative = 0;
       double blueCumulative = 0;
@@ -152,9 +171,36 @@ int main(int argc, char** argv) {
 
       cv::circle(rgb_image, value.location, value.radius, color, 2);
 
+
       // setup bit
-      if (isRed) {
-        bitValue |= 1 << key;
+      bitValues[key] = isRed;
+    }
+
+
+    std::cout << "High bits  : " << std::endl;
+    for (const auto& [key, value] : Bits) {
+      if (bitValues[key])
+      {
+        std::cout << key << " ";
+      }
+    }
+    std::cout << std::endl;
+    std::cout << "Low bits  : " << std::endl;
+    for (const auto& [key, value] : Bits) {
+      if (!bitValues[key])
+      {
+        std::cout << key << " ";
+      }
+    }
+    std::cout << std::endl;
+
+    //set bits
+    std::uint32_t bitValue = 0x0;
+    for (const auto& [key, value] : bitValues) {
+      if (value)
+      {
+        bitValue |= (0x1 << key);
+
       }
     }
 
@@ -168,24 +214,32 @@ int main(int argc, char** argv) {
     if (settings.coding == "gray") {
       bitValue = fromGrayCode(bitValue);
     }
+    std::cout <<"Decoded value: " << bitValue << std::endl;
 
     char buffer[100];
     sprintf(buffer, "Bit value: %u", bitValue);
     cv::putText(rgb_image, buffer, {0, 20}, cv::FONT_HERSHEY_SIMPLEX, 0.3, cv::Scalar(255, 255, 0), 1);
 
 
-    if (exportImage)
-    {
-       const std::filesystem::path imagePath (argv[1]);
-       const std::filesystem::path parentPath = imagePath.parent_path();
+    const std::filesystem::path imagePath (argv[1]);
+    const std::filesystem::path parentPath = imagePath.parent_path();
 
+     if (exportImage)
+     {
        char resultFn[256];
-       sprintf(buffer, "%u.jpg", bitValue);
+       sprintf(buffer, "decoded_%u.jpg", bitValue);
 
        const std::filesystem::path resultPath = parentPath / std::string (buffer);
        std::cout << "Will save to " << resultPath << std::endl;
-       cv::imwrite(resultPath, image);
+       cv::imwrite(resultPath, inputImage);
+    }
+    if (debug) {
+      char resultFn[256];
+      sprintf(buffer, "debug_%u.jpg", bitValue);
 
+      const std::filesystem::path resultPath = parentPath / std::string (buffer);
+      std::cout << "Will save to " << resultPath << std::endl;
+      cv::imwrite(resultPath, rgb_image);
     }
     if (gui) {
       cv::Mat result;
