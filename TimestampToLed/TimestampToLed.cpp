@@ -9,43 +9,8 @@
 #include <thread>
 #include "gray.h"
 #include <set>
+#include <fstream>
 using json = nlohmann::json;
-
-
-namespace Config
-{
-const bool ApplyGrayCode=true;
-const std::map<int, int> BitMapping=
-    {
-        {0,0},
-        {1,1},
-        {2,2},
-        {3,3},
-        {4,4},
-        {5,5},
-        {6,9},// ommit 6,7,8
-        {7,10},
-        {8,11},
-        {9,12},
-        {10,13},
-        {11,14},
-        {12,15},
-        {13,16},
-        {14,17}, //omit 18,19,20
-        {15,21},
-        {16,22},
-        {17,23},
-        {18,24},
-        {19,25},
-        {20,26},
-        {21,27},
-
-};
-}
-
-
-const std::string SERIAL_PORT = "/dev/ttyUSB0";
-const auto SERIAL_BAUDRATE = LibSerial::BaudRate::BAUD_115200;
 
 struct DataSendToUc{
     uint32_t ledState;
@@ -53,6 +18,52 @@ struct DataSendToUc{
     std::array<uint8_t,3> colorInactive;
     uint8_t brightness;
 };
+DataSendToUc DefaultConfig()
+{
+    DataSendToUc d;
+    d.brightness = 5;
+    d.colorActive = {0,0,100};
+    d.colorInactive = {50,0,0};
+    return d;
+}
+
+namespace Config
+{
+    DataSendToUc ucConfig = DefaultConfig();
+    bool ApplyGrayCode=true;
+    std::map<int, int> BitMapping=
+        {
+            {0,0},
+            {1,1},
+            {2,2},
+            {3,3},
+            {4,4},
+            {5,5},
+            {6,9},// ommit 6,7,8
+            {7,10},
+            {8,11},
+            {9,12},
+            {10,13},
+            {11,14},
+            {12,15},
+            {13,16},
+            {14,17}, //omit 18,19,20
+            {15,21},
+            {16,22},
+            {17,23},
+            {18,24},
+            {19,25},
+            {20,26},
+            {21,27},
+    };
+
+}
+
+
+const std::string SERIAL_PORT = "/dev/ttyUSB0";
+const auto SERIAL_BAUDRATE = LibSerial::BaudRate::BAUD_115200;
+
+
 
 uint32_t ConvertColorToUc(const std::array<uint8_t,3>& color){
     return uint32_t(0xff000000) | (color[0] << 16) | (color[1] << 8) | color[2];
@@ -89,7 +100,8 @@ uint32_t ApplyMapping(uint32_t ledState)
   return result;
 }
 
-void sendToUc(LibSerial::SerialStream& serialStream, const DataSendToUc& data){
+void sendToUc(LibSerial::SerialStream& serialStream, const DataSendToUc& data )
+{
     json j;
     j["ledState"] = data.ledState;
     j["active"] = ConvertColorToUc(data.colorActive);
@@ -105,6 +117,7 @@ struct StampedTime{
   double timeStamp;
   std::chrono::steady_clock::time_point time;
 };
+
 
 
 void ZMQThread(StampedTime &timeStamp, std::mutex &lock){
@@ -131,21 +144,56 @@ void ZMQThread(StampedTime &timeStamp, std::mutex &lock){
     }
 }
 
-DataSendToUc SetConfig()
-{
-  DataSendToUc d;
-  d.brightness = 5;
-  d.colorActive = {0,0,100};
-  d.colorInactive = {50,0,0};
-  return d;
+
+bool LoadConfigFromFile(const std::string& filename) {
+    if (!std::filesystem::exists(filename)) {
+        return false;
+    }
+    try {
+        std::ifstream i(filename); // no need to close due to RAII ins std.
+
+        nlohmann::json config;
+        i >> config;
+
+        DataSendToUc d;
+        d.brightness = config["brightness"];
+        d.colorActive = config["colorActive"];
+        d.colorInactive = config["colorInactive"];
+        Config::BitMapping = config["bitmapping"];
+        Config::ApplyGrayCode = config["gray"];
+        Config::ucConfig = d;
+        std::cout << "Config was loaded : \n" << config.dump(4)<< std::endl;
+        return true;
+    }
+    catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return false;;
+    }
 }
-void sendTimestamp(float ts, LibSerial::SerialStream& serialStream)
+void CreateDefaultConfig(const std::string& filename) {
+    try {
+        nlohmann::json config;
+        config["brightness"] = Config::ucConfig.brightness;
+        config["colorActive"] = Config::ucConfig.colorActive;
+        config["colorInactive"] = Config::ucConfig.colorInactive;
+        config["gray"] = Config::ApplyGrayCode;
+        config["bitmapping"] = Config::BitMapping;
+
+        std::ofstream o(filename); // no need to close due to RAII ins std.
+        o << config.dump(4) << std::endl;
+    }
+    catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+    }
+}
+
+void sendTimestamp(float ts, LibSerial::SerialStream& serialStream, const DataSendToUc& config)
 {
     // offset time to current time
     // lets send number of 1/100 seconds
     const uint32_t timeToUc = static_cast<uint32_t>(floor(ts/0.1));
     // send to UC
-    DataSendToUc data = SetConfig();
+    DataSendToUc data = config;
     uint32_t coded = Config::ApplyGrayCode ? toGrayCode(timeToUc) : timeToUc ;
     uint32_t codedMapped = ApplyMapping(coded);
     data.ledState = codedMapped;
@@ -154,6 +202,13 @@ void sendTimestamp(float ts, LibSerial::SerialStream& serialStream)
 }
 int main(int argc, char** argv)
 {
+
+    const std::string fn = "/media/usb/led_cofig.json";
+    auto configLoaded = LoadConfigFromFile(fn);
+    if (!configLoaded) {
+        CreateDefaultConfig(fn);
+    }
+
     std::mutex  lock;
     StampedTime timeStamp;
 
@@ -169,7 +224,7 @@ int main(int argc, char** argv)
             const std::string arg(argv[2]);
             float testTimestamp=std::atof(arg.c_str());
             std::cout << " test mode, will display tiemstamp of " << testTimestamp << std::endl;
-            sendTimestamp(testTimestamp, serialStream);
+            sendTimestamp(testTimestamp, serialStream, Config::ucConfig);
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             serialStream.Close();
@@ -177,7 +232,7 @@ int main(int argc, char** argv)
         }
         if (command=="--inactiveLeds")
         {
-          DataSendToUc data = SetConfig();
+          DataSendToUc data = Config::ucConfig;
           uint32_t coded = std::numeric_limits<uint32_t>::max();
           uint32_t codedMapped = ApplyMapping(coded);
           data.ledState = codedMapped;
@@ -207,7 +262,7 @@ int main(int argc, char** argv)
            stampedTimeCp = timeStamp;
        }
 
-       sendTimestamp(stampedTimeCp.timeStamp, serialStream);
+       sendTimestamp(stampedTimeCp.timeStamp, serialStream, Config::ucConfig);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
