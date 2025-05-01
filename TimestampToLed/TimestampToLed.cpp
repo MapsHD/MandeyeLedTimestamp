@@ -14,16 +14,16 @@ using json = nlohmann::json;
 
 struct DataSendToUc{
     uint32_t ledState;
-    std::array<uint8_t,3> colorNotTimeStamp;
-    std::array<uint8_t,3> colorTimeStamp;
+    std::array<uint8_t,3> colorActive;
+    std::array<uint8_t,3> colorInactive;
     uint8_t brightness;
 };
 DataSendToUc DefaultConfig()
 {
     DataSendToUc d;
     d.brightness = 5;
-    d.colorNotTimeStamp = {0,0,0};
-    d.colorTimeStamp = {100,0,0};
+    d.colorActive = {0,0,0};
+    d.colorInactive = {100,0,0};
     return d;
 }
 
@@ -104,8 +104,8 @@ void sendToUc(LibSerial::SerialStream& serialStream, const DataSendToUc& data )
 {
     json j;
     j["ledState"] = data.ledState;
-    j["active"] = ConvertColorToUc(data.colorNotTimeStamp);
-    j["inactive"] = ConvertColorToUc(data.colorTimeStamp);
+    j["active"] = ConvertColorToUc(data.colorActive);
+    j["inactive"] = ConvertColorToUc(data.colorInactive);
     j["brightness"] = data.brightness;
     std::string s = j.dump();
     std::cout << s << std::endl;
@@ -157,8 +157,8 @@ bool LoadConfigFromFile(const std::string& filename) {
 
         DataSendToUc d;
         d.brightness = config["brightness"];
-        d.colorNotTimeStamp = config["colorNotTimeStamp"];
-        d.colorTimeStamp = config["colorTimeStamp"];
+        d.colorActive = config["colorActive"];
+        d.colorInactive = config["colorInactive"];
         Config::BitMapping = config["bitmapping"];
         Config::ApplyGrayCode = config["gray"];
         Config::ucConfig = d;
@@ -174,8 +174,8 @@ void CreateDefaultConfig(const std::string& filename) {
     try {
         nlohmann::json config;
         config["brightness"] = Config::ucConfig.brightness;
-        config["colorNotTimeStamp"] = Config::ucConfig.colorNotTimeStamp;
-        config["colorTimeStamp"] = Config::ucConfig.colorTimeStamp;
+        config["colorActive"] = Config::ucConfig.colorActive;
+        config["colorInactive"] = Config::ucConfig.colorInactive;
         config["gray"] = Config::ApplyGrayCode;
         config["bitmapping"] = Config::BitMapping;
 
