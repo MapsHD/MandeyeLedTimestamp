@@ -104,8 +104,8 @@ void sendToUc(LibSerial::SerialStream& serialStream, const DataSendToUc& data )
 {
     json j;
     j["ledState"] = data.ledState;
-    j["colorNotTimeStamp"] = ConvertColorToUc(data.colorNotTimeStamp);
-    j["colorTimeStamp"] = ConvertColorToUc(data.colorTimeStamp);
+    j["active"] = ConvertColorToUc(data.colorNotTimeStamp);
+    j["inactive"] = ConvertColorToUc(data.colorTimeStamp);
     j["brightness"] = data.brightness;
     std::string s = j.dump();
     std::cout << s << std::endl;
