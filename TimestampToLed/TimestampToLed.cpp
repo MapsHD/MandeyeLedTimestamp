@@ -135,9 +135,9 @@ void ZMQThread(StampedTime &timeStamp, std::mutex &lock){
         std::string msg = update.to_string();
         std::cout << "Received: " << msg << std::endl;
         const auto data = json::parse(msg);
-        if (data.contains("time")){
+        if (data.contains("dur")){
             std::lock_guard<std::mutex> lck(lock);
-            timeStamp.timeStamp = static_cast<double>(data["time"])/1e9;
+            timeStamp.timeStamp = static_cast<double>(data["dur"])/1e9;
             std::swap(timeStamp.time,time);
         }
 
