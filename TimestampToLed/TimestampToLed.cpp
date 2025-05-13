@@ -31,32 +31,31 @@ namespace Config
 {
     DataSendToUc ucConfig = DefaultConfig();
     bool ApplyGrayCode=true;
-    std::map<int, int> BitMapping=
+    std::map<int, int> BitMapping =
         {
-            {0,0},
-            {1,1},
-            {2,2},
-            {3,3},
-            {4,4},
-            {5,5},
-            {6,9},// ommit 6,7,8
-            {7,10},
-            {8,11},
-            {9,12},
-            {10,13},
-            {11,14},
-            {12,15},
-            {13,16},
-            {14,17}, //omit 18,19,20
-            {15,21},
-            {16,22},
-            {17,23},
-            {18,24},
-            {19,25},
-            {20,26},
-            {21,27},
+            {0, 0},
+            {1, 1},
+            {2, 2},
+            {3, 3},
+            {4, 4},
+            {5, 8}, //ommit 5,6,7
+            {6, 9}, 
+            {7, 10},
+            {8, 11},
+            {9, 12},
+            {10, 13},
+            {11, 14},
+            {12, 15},
+            {13, 16}, 
+            {14, 20}, // omit 17,18,19
+            {15, 21},
+            {16, 22},
+            {17, 23},
+            {18, 24},
+            {19, 25},
+            {20, 26},
+            {21, 27},
     };
-
 }
 
 
@@ -140,7 +139,6 @@ void ZMQThread(StampedTime &timeStamp, std::mutex &lock){
             timeStamp.timeStamp = static_cast<double>(data["dur"])/1e9;
             std::swap(timeStamp.time,time);
         }
-
     }
 }
 
